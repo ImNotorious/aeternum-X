@@ -31,16 +31,16 @@ export function FeatureCard({ icon, title, description, delay = 0 }: FeatureCard
           <p className="text-sm text-muted-foreground">
             {title === "AI Diagnosis" &&
               "Our AI models are trained on millions of medical images to provide highly accurate diagnoses."}
-            {title === "Blockchain Security" &&
-              "Patient data is encrypted and stored on the blockchain, ensuring privacy and security."}
+            {title === "Hospital Management System" &&
+              "Manages patient records, appointments and resource allocation."}
             {title === "Fast Results" &&
               "Our system processes medical images instantly, providing quick and reliable results."}
             {title === "24/7 Availability" &&
               "Our platform is available round the clock, ensuring you get medical attention when needed."}
             {title === "Expert Network" &&
               "Our platform connects you with qualified doctors for consultations and second opinions."}
-            {title === "Decentralized Payments" &&
-              "Pay for services using cryptocurrency or traditional payment methods with full transparency."}
+            {title === "Ambulance Dispatch" &&
+              "Enables tracking, optimized dispatch, and hospital coordination."}
           </p>
         </CardContent>
       </Card>

@@ -22,8 +22,8 @@ export default function ServicesPage() {
     },
     {
       icon: <Shield className="h-10 w-10 text-primary" />,
-      title: "Blockchain Medical Records",
-      description: "Secure, immutable medical records stored on the blockchain",
+      title: "Safe Medical Records",
+      description: "Secure, immutable medical records",
       features: [
         "End-to-end encryption",
         "Patient-controlled access",
@@ -37,17 +37,7 @@ export default function ServicesPage() {
       description: "Connect with verified medical professionals for remote consultations",
       features: ["Video and audio calls", "Secure messaging", "Digital prescriptions", "Follow-up scheduling"],
     },
-    {
-      icon: <Sparkles className="h-10 w-10 text-primary" />,
-      title: "Decentralized Payments",
-      description: "Transparent and secure payment system for medical services",
-      features: [
-        "Cryptocurrency payments",
-        "Traditional payment methods",
-        "Automated billing",
-        "Payment escrow for services",
-      ],
-    },
+    
     {
       icon: <Zap className="h-10 w-10 text-primary" />,
       title: "Emergency Response",
@@ -62,7 +52,7 @@ export default function ServicesPage() {
     {
       icon: <Clock className="h-10 w-10 text-primary" />,
       title: "Health Monitoring",
-      description: "Continuous health monitoring with blockchain-verified data",
+      description: "Continuous health monitoring with verified data",
       features: [
         "Integration with wearable devices",
         "Personalized health insights",
@@ -87,7 +77,7 @@ export default function ServicesPage() {
           Comprehensive Healthcare Solutions
         </h1>
         <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-          Aeternum combines cutting-edge AI technology with blockchain security to revolutionize healthcare delivery
+          Aeternum combines cutting-edge AI technology to revolutionize healthcare delivery
         </p>
       </motion.div>
 

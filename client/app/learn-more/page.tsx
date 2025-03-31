@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { GlowingButton } from "@/components/ui/glowing-button"
 import Link from "next/link"
-import { ArrowRight, Brain, Shield, Zap, Clock } from "lucide-react"
+import { ArrowRight, Brain, Shield, Zap, Clock, Siren, Hospital } from "lucide-react"
 
 export default function LearnMorePage() {
   const technologies = [
@@ -18,16 +18,19 @@ export default function LearnMorePage() {
         "Our AI models are trained on millions of medical images to provide highly accurate diagnoses. We use deep learning techniques to identify patterns that might be missed by human eyes.",
     },
     {
-      icon: <Shield className="h-10 w-10 text-primary" />,
-      title: "Blockchain Technology",
+
+
+      icon: <Siren className="h-10 w-10 text-primary" />,
+      title: "Ambulance Management",
       description:
-        "We utilize blockchain to create immutable, secure medical records. This ensures data integrity while giving patients control over who can access their information.",
+        "Our system optimizes ambulance dispatch, ensuring faster response times by integrating real-time location tracking and automated emergency routing.",
     },
+
     {
-      icon: <Zap className="h-10 w-10 text-primary" />,
-      title: "Smart Contracts",
+      icon: <Hospital className="h-10 w-10 text-primary" />,
+      title: "Hospital Management",
       description:
-        "Automated smart contracts handle payments, appointments, and data access permissions, eliminating intermediaries and reducing costs.",
+        "A streamlined platform for hospital administration, handling patient records, appointment scheduling, and resource allocation for efficient healthcare management.",
     },
     {
       icon: <Clock className="h-10 w-10 text-primary" />,
@@ -42,16 +45,6 @@ export default function LearnMorePage() {
       question: "How accurate is the AI diagnosis?",
       answer:
         "Our AI diagnostic system has achieved an accuracy rate of over 98% in clinical trials, often detecting conditions earlier than traditional methods. However, we always recommend consulting with a healthcare professional for final diagnoses.",
-    },
-    {
-      question: "How is my medical data protected?",
-      answer:
-        "Your medical data is encrypted and stored on the blockchain, making it virtually impossible to alter or access without proper authorization. You control who can access your records through our permission system.",
-    },
-    {
-      question: "Can I use the platform without cryptocurrency?",
-      answer:
-        "Yes, while we support cryptocurrency payments for their security and efficiency, we also accept traditional payment methods like credit cards and bank transfers.",
     },
     {
       question: "How do I connect with doctors on the platform?",
@@ -85,7 +78,7 @@ export default function LearnMorePage() {
           Discover Aeternum
         </h1>
         <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-          Explore how our platform is revolutionizing healthcare through AI and blockchain technology
+          Explore how our platform is revolutionizing healthcare through AI
         </p>
       </motion.div>
 
@@ -117,7 +110,7 @@ export default function LearnMorePage() {
               <h2 className="text-2xl font-bold mb-4">Cutting-Edge Technology</h2>
               <p className="text-muted-foreground">
                 At Aeternum, we leverage the most advanced technologies to create a secure, efficient, and accurate
-                healthcare platform. Our unique combination of artificial intelligence and blockchain creates a system
+                healthcare platform. Our unique combination of artificial intelligence creates a system
                 that's greater than the sum of its parts.
               </p>
             </div>
@@ -147,77 +140,95 @@ export default function LearnMorePage() {
               ))}
             </div>
 
-            <div className="mt-12 max-w-3xl mx-auto">
-              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle>How It All Works Together</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Our platform integrates these technologies into a seamless workflow:
+            {/* How It Works Section */}
+            <section className="py-20 md:py-32 relative overflow-hidden border-t border-primary/10 bg-gradient-to-b from-background/95 to-background">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-primary/10 via-background/0 to-transparent pointer-events-none"></div>
+
+              <div className="container px-4 md:px-6 relative z-10">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7 }}
+                  className="flex flex-col items-center justify-center space-y-4 text-center mb-16"
+                >
+                  <Badge className="mb-2" variant="outline">
+                    Simple Process
+                  </Badge>
+                  <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primaryvia-primary via-primary via-primary via-primary via-primary via-primary via-primary via-primary to-primary-foreground">
+                    How It Works
+                  </h2>
+                  <p className="mx-auto mt-4 max-w-[700px] text-muted-foreground md:text-xl">
+                    Our machine-learning medical platform connects patients with doctors securely and efficiently
                   </p>
-                  <ol className="space-y-4">
-                    <li className="flex gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                        <span className="text-sm font-bold text-primary">1</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Medical Image Upload</p>
-                        <p className="text-sm text-muted-foreground">
-                          Patients or healthcare providers upload medical images to the platform.
+                </motion.div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+                  {/* Connecting line */}
+                  <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 transform -translate-y-1/2 z-0"></div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: 0.1 }}
+                    className="relative z-10"
+                  >
+                    <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                      <CardContent className="p-6 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mx-auto mb-4">
+                          <span className="text-xl font-bold text-primary">1</span>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">AI Prediction</h3>
+                        <p className="text-muted-foreground">
+                          Access advanced AI diagnostics for early detection of chest and heart conditions
                         </p>
-                      </div>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                        <span className="text-sm font-bold text-primary">2</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">AI Analysis</p>
-                        <p className="text-sm text-muted-foreground">
-                          Our AI models analyze the images in real-time, identifying potential issues with high
-                          accuracy.
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: 0.3 }}
+                    className="relative z-10"
+                  >
+                    <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                      <CardContent className="p-6 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mx-auto mb-4">
+                          <span className="text-xl font-bold text-primary">2</span>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Book Consultation</h3>
+                        <p className="text-muted-foreground">
+                          Schedule a consultation with a verified medical professional
                         </p>
-                      </div>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                        <span className="text-sm font-bold text-primary">3</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Blockchain Storage</p>
-                        <p className="text-sm text-muted-foreground">
-                          Results and images are encrypted and stored on the blockchain, creating an immutable record.
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: 0.5 }}
+                    className="relative z-10"
+                  >
+                    <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                      <CardContent className="p-6 text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mx-auto mb-4">
+                          <span className="text-xl font-bold text-primary">3</span>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Emergency Response</h3>
+                        <p className="text-muted-foreground">
+                          Request urgent medical assistance with real-time ambulance tracking and estimated arrival updates
                         </p>
-                      </div>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                        <span className="text-sm font-bold text-primary">4</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Doctor Review</p>
-                        <p className="text-sm text-muted-foreground">
-                          Healthcare providers can access the results (with patient permission) and provide expert
-                          opinions.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                        <span className="text-sm font-bold text-primary">5</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Smart Contract Execution</p>
-                        <p className="text-sm text-muted-foreground">
-                          Payments and data access are handled automatically through secure smart contracts.
-                        </p>
-                      </div>
-                    </li>
-                  </ol>
-                </CardContent>
-              </Card>
-            </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </div>
+              </div>
+            </section>
           </motion.div>
         </TabsContent>
 

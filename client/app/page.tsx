@@ -194,32 +194,33 @@ export default function Home() {
             />
             <FeatureCard
               icon={<Shield className="h-10 w-10 text-primary" />}
-              title="Blockchain Security"
-              description="Immutable medical records secured by blockchain technology"
+              title="Fast Results"
+              description="Get diagnosis results in minutes, not days"
               delay={0.2}
             />
             <FeatureCard
               icon={<Zap className="h-10 w-10 text-primary" />}
-              title="Fast Results"
-              description="Get diagnosis results in minutes, not days"
+              title="Expert Network"
+              description="Connect with verified medical professionals"
               delay={0.3}
             />
             <FeatureCard
               icon={<Clock className="h-10 w-10 text-primary" />}
-              title="24/7 Availability"
-              description="Access medical services anytime, anywhere"
+              title="Hospital Management System"
+              description="Efficient records, scheduling, resource management."
               delay={0.4}
             />
             <FeatureCard
               icon={<Users className="h-10 w-10 text-primary" />}
-              title="Expert Network"
-              description="Connect with verified medical professionals"
+              title="Ambulance Dispatch"
+              description="Real-time tracking, dispatch, optimized emergency response
+            "
               delay={0.5}
             />
             <FeatureCard
               icon={<Sparkles className="h-10 w-10 text-primary" />}
-              title="Decentralized Payments"
-              description="Secure and transparent payment system"
+              title="24/7 Availability"
+              description="Access medical services anytime, anywhere"
               delay={0.6}
             />
           </div>
@@ -266,9 +267,9 @@ export default function Home() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mx-auto mb-4">
                     <span className="text-xl font-bold text-primary">1</span>
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Connect Wallet</h3>
+                  <h3 className="text-xl font-bold mb-2">AI Prediction</h3>
                   <p className="text-muted-foreground">
-                    Link your MetaMask or other Web3 wallet to access the platform
+                  Access advanced AI diagnostics for early detection of chest and heart conditions 
                   </p>
                 </CardContent>
               </Card>
@@ -288,7 +289,7 @@ export default function Home() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Book Consultation</h3>
                   <p className="text-muted-foreground">
-                    Schedule a consultation with a verified doctor using smart contracts
+                    Schedule a consultation with a verified medical professional
                   </p>
                 </CardContent>
               </Card>
@@ -306,9 +307,9 @@ export default function Home() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 border border-primary/20 mx-auto mb-4">
                     <span className="text-xl font-bold text-primary">3</span>
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Secure Payment</h3>
+                  <h3 className="text-xl font-bold mb-2">Emergency Response</h3>
                   <p className="text-muted-foreground">
-                    Pay securely using cryptocurrency or traditional payment methods
+                  Request urgent medical assistance with real-time ambulance tracking and estimated arrival updates
                   </p>
                 </CardContent>
               </Card>
@@ -347,7 +348,7 @@ export default function Home() {
               delay={0.1}
             />
             <TestimonialCard
-              quote="As a doctor, the blockchain security gives me confidence that patient records are secure and immutable."
+              quote="​As a doctor, I've seen rapid ambulance services and efficient emergency response systems reduce wait times and save lives."
               author="Dr. Michael Chen"
               role="Cardiologist"
               avatar="/placeholder.svg?height=80&width=80"
