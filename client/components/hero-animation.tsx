@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
 import * as THREE from "three"
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
 
 export default function HeroAnimation() {
   const containerRef = useRef<HTMLDivElement>(null)
