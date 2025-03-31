@@ -16,6 +16,12 @@ import { GlowingButton } from "@/components/ui/glowing-button"
 import { useToast } from "@/hooks/use-toast"
 import { Ambulance, MapPin, Phone, AlertTriangle, Clock, CheckCircle } from "lucide-react"
 
+type Marker = {
+  position: { lat: number; lng: number };
+  popup?: string;
+  icon?: "user" | "ambulance" | "hospital";
+};
+
 // Import map component dynamically to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("@/components/map-component"), {
   ssr: false,
@@ -298,7 +304,7 @@ export default function EmergencyRequestPage() {
                       {
                         position: userLocation,
                         popup: "Your current location",
-                        icon: "user",
+                        icon: "user" as "user",
                       },
                     ]}
                   />
@@ -358,26 +364,26 @@ export default function EmergencyRequestPage() {
               <div className="h-[400px] w-full rounded-lg overflow-hidden">
                 {userLocation ? (
                   <MapComponent
-                    center={userLocation}
-                    zoom={15}
-                    markers={[
-                      {
-                        position: userLocation,
-                        popup: "Your location",
-                        icon: "user",
-                      },
-                      ...(ambulanceLocation
-                        ? [
-                            {
-                              position: ambulanceLocation,
-                              popup: "Ambulance location",
-                              icon: "ambulance",
-                            },
-                          ]
-                        : []),
-                    ]}
-                    polyline={ambulanceLocation ? [ambulanceLocation, userLocation] : undefined}
-                  />
+                  center={userLocation}
+                  zoom={15}
+                  markers={[
+                    {
+                      position: userLocation,
+                      popup: "Your current location",
+                      icon: "user", // This now matches the allowed types
+                    } as Marker,
+                    ...(ambulanceLocation
+                      ? [
+                          {
+                            position: ambulanceLocation,
+                            popup: "Ambulance location",
+                            icon: "ambulance", // This also matches the allowed types
+                          } as Marker,
+                        ]
+                      : []),
+                  ]}
+                />
+                
                 ) : (
                   <div className="h-full w-full bg-muted flex items-center justify-center">
                     <p className="text-sm text-muted-foreground">Loading map...</p>
