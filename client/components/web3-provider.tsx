@@ -3,6 +3,12 @@
 import { createContext, useEffect, useState, type ReactNode } from "react"
 import { ethers } from "ethers"
 
+declare global {
+  interface Window {
+    ethereum?: any
+  }
+}
+
 interface Web3ContextType {
   provider: ethers.BrowserProvider | null
   signer: ethers.JsonRpcSigner | null
