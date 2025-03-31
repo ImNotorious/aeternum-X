@@ -66,7 +66,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      await signUp(email, password)
+      await signUp(email, password, "Patient Name") // Replace "Patient Name" with the actual name input
       setShowSuccessAnimation(true)
       setTimeout(() => {
         router.push("/auth/signup-success")
