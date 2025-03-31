@@ -1,16 +1,11 @@
-import type { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
-import { FirestoreAdapter } from '@next-auth/firebase-adapter';
-import { cert } from "firebase-admin/app"
-import { db } from "./firebase-admin"
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import clientPromise from "@/lib/mongodb";
+import bcrypt from "bcrypt";
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
+    // Credentials Provider for Email/Password Authentication
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -19,61 +14,60 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
         try {
-          // Here we would verify against Firebase Auth
-          // This is a simplified version
-          const userDoc = await db.collection("users").where("email", "==", credentials.email).get()
+          // Connect to MongoDB
+          const client = await clientPromise;
+          const db = client.db("aeternum");
 
-          if (userDoc.empty) {
-            return null
+          // Find user by email
+          const user = await db.collection("users").findOne({ email: credentials.email });
+
+          if (!user) {
+            return null; // User not found
           }
 
-          // In a real implementation, you would verify the password with Firebase Auth
-          // For now, we're just returning the user
-          const userData = userDoc.docs[0].data()
+          // Verify password using bcrypt
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password);
 
+          if (!isValidPassword) {
+            return null; // Invalid password
+          }
+
+          // Return user object for the session
           return {
-            id: userDoc.docs[0].id,
-            email: userData.email,
-            name: userData.name || null,
-            image: userData.image || null,
-            role: userData.role || "patient",
-          }
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name || null,
+            image: user.image || null,
+            role: user.role || "patient",
+          };
         } catch (error) {
-          console.error("Auth error:", error)
-          return null
+          console.error("Error during authorization:", error);
+          return null;
         }
       },
     }),
   ],
-  adapter: FirestoreAdapter({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID || "",
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL || "",
-      privateKey: process.env.FIREBASE_PRIVATE_KEY ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n") : "",
-    }),
-    firestore: db,
-  }),
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // Use JSON Web Tokens for sessions
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role || "patient"
-        token.id = user.id
+        token.role = user.role || "patient";
+        token.id = user.id;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as string
-        session.user.id = token.id as string
+        session.user.role = token.role as string;
+        session.user.id = token.id as string;
       }
-      return session
+      return session;
     },
   },
   pages: {
@@ -81,5 +75,4 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET,
-}
-
+};
