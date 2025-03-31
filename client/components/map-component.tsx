@@ -68,7 +68,6 @@ export default function MapComponent({ center, zoom, markers = [], polyline }: M
   return (
     <div className="h-[300px] w-full rounded-lg overflow-hidden">
       <MapContainer
-        center={[center.lat, center.lng]}
         zoom={zoom}
         style={{ height: "100%", width: "100%" }}
         attributionControl={false}
