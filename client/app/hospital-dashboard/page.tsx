@@ -230,7 +230,7 @@ export default function HospitalDashboardPage() {
   }
 
   // Handle emergency request dispatch
-  const handleDispatchAmbulance = (requestId) => {
+  const handleDispatchAmbulance = (requestId: string) => {
     const updatedRequests = emergencyRequests.map((request) =>
       request.id === requestId ? { ...request, status: "dispatched" } : request,
     )
