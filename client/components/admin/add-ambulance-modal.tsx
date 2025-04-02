@@ -48,10 +48,12 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     setIsSubmitting(true)
 
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll simulate adding a new ambulance
+      // Generate a temporary ID for optimistic UI update
+      const tempId = `AMB-${Math.floor(1000 + Math.random() * 9000)}`
+
+      // Create the ambulance object
       const newAmbulance = {
-        id: `AMB-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: tempId,
         driverName: formData.driverName,
         vehicleNumber: formData.vehicleNumber,
         status: formData.status,
@@ -59,7 +61,24 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
         lastService: formData.lastService,
       }
 
+      // First update the UI optimistically
       onAddAmbulance(newAmbulance)
+
+      // Then save to the database
+      const response = await fetch("/api/ambulances", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newAmbulance),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to add ambulance")
+      }
+
+      const result = await response.json()
 
       toast({
         title: "Ambulance Added",
@@ -76,9 +95,10 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
       })
       onClose()
     } catch (error) {
+      console.error("Error adding ambulance:", error)
       toast({
         title: "Error",
-        description: "Failed to add ambulance. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add ambulance. Please try again.",
         variant: "destructive",
       })
     } finally {

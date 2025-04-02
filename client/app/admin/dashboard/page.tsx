@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -29,38 +29,37 @@ import { AddAppointmentModal } from "@/components/admin/add-appointment-modal"
 import { AddEmergencyModal } from "@/components/admin/add-emergency-modal"
 
 // Define the structure for Ambulance
-interface Ambulance {
-  id: string;
-  driverName: string;
-  vehicleNumber: string;
-  status: string; // e.g., "available", "on_call", "maintenance"
-  location: string;
-  lastService: string;
+interface AmbulanceType {
+  id: string
+  driverName: string
+  vehicleNumber: string
+  status: string // e.g., "available", "on_call", "maintenance"
+  location: string
+  lastService: string
 }
 
 // Define the structure for Appointment
 interface Appointment {
-  id: string;
-  patientName: string;
-  doctorName: string;
-  date: string;
-  time: string;
-  status: string; // e.g., "confirmed", "completed", "cancelled", "pending"
-  department: string;
+  id: string
+  patientName: string
+  doctorName: string
+  date: string
+  time: string
+  status: string // e.g., "confirmed", "completed", "cancelled", "pending"
+  department: string
 }
 
 // Define the structure for Emergency Call
 interface Emergency {
-  id: string;
-  patientName: string;
-  contactNumber: string;
-  location: string;
-  emergencyType: string; // e.g., "Cardiac", "Accident"
-  status: string; // e.g., "dispatched", "in_progress", "completed"
-  ambulanceId?: string; // Optional, as not all emergencies may have an ambulance assigned
-  timestamp: string;
+  id: string
+  patientName: string
+  contactNumber: string
+  location: string
+  emergencyType: string // e.g., "Cardiac", "Accident"
+  status: string // e.g., "dispatched", "in_progress", "completed"
+  ambulanceId?: string // Optional, as not all emergencies may have an ambulance assigned
+  timestamp: string
 }
-
 
 // Mock data for dashboard
 const APPOINTMENTS_DATA = [
@@ -187,6 +186,7 @@ const EMERGENCY_CALLS = [
   },
 ]
 
+// Update the AdminDashboardPage component to fetch ambulances from the API
 export default function AdminDashboardPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
@@ -201,38 +201,65 @@ export default function AdminDashboardPage() {
   const [isAddAppointmentModalOpen, setIsAddAppointmentModalOpen] = useState(false)
   const [isAddEmergencyModalOpen, setIsAddEmergencyModalOpen] = useState(false)
 
-  // Add handlers for adding new items
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch ambulances from the database on component mount
+  useEffect(() => {
+    const fetchAmbulances = async () => {
+      try {
+        const response = await fetch("/api/ambulances")
+        if (response.ok) {
+          const data = await response.json()
+          // If we have data from the API, use it; otherwise, fall back to mock data
+          if (data && data.length > 0) {
+            setAmbulances(data)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching ambulances:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load ambulances. Using sample data instead.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAmbulances()
+  }, [toast])
+
   // Function to handle adding a new ambulance
-const handleAddAmbulance = (newAmbulance: Ambulance) => {
-  setAmbulances((prev) => [newAmbulance, ...prev]);
-};
-
-// Function to handle adding a new appointment
-const handleAddAppointment = (newAppointment: Appointment) => {
-  setAppointments((prev) => [newAppointment, ...prev]);
-};
-
-// Function to handle adding a new emergency call
-const handleAddEmergency = (newEmergency: Emergency) => {
-  setEmergencyCalls((prev) => [
-    {
-      ...newEmergency,
-      ambulanceId: newEmergency.ambulanceId ?? "", // Provide a default empty string if undefined
-    },
-    ...prev,
-  ]);
-
-  // Update ambulance status to "on_call"
-  if (newEmergency.ambulanceId) {
-    setAmbulances((prev) =>
-      prev.map((ambulance) =>
-        ambulance.id === newEmergency.ambulanceId ? { ...ambulance, status: "on_call" } : ambulance
-      )
-    );
+  const handleAddAmbulance = (newAmbulance: AmbulanceType) => {
+    setAmbulances((prev) => [newAmbulance, ...prev])
   }
-};
 
+  // Function to handle adding a new appointment
+  const handleAddAppointment = (newAppointment: Appointment) => {
+    setAppointments((prev) => [newAppointment, ...prev])
+  }
 
+  // Function to handle adding a new emergency call
+  const handleAddEmergency = (newEmergency: Emergency) => {
+    setEmergencyCalls((prev) => [
+      {
+        ...newEmergency,
+        ambulanceId: newEmergency.ambulanceId ?? "", // Provide a default empty string if undefined
+      },
+      ...prev,
+    ])
+
+    // Update ambulance status to "on_call"
+    if (newEmergency.ambulanceId) {
+      setAmbulances((prev) =>
+        prev.map((ambulance) =>
+          ambulance.id === newEmergency.ambulanceId ? { ...ambulance, status: "on_call" } : ambulance,
+        ),
+      )
+    }
+  }
 
   // Filter appointments based on search query and status
   const filteredAppointments = appointments.filter((appointment) => {
