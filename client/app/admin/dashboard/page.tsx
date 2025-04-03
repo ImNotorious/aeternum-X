@@ -23,6 +23,7 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
+  Loader2,
 } from "lucide-react"
 import { AddAmbulanceModal } from "@/components/admin/add-ambulance-modal"
 import { AddAppointmentModal } from "@/components/admin/add-appointment-modal"
@@ -61,138 +62,13 @@ interface Emergency {
   timestamp: string
 }
 
-// Mock data for dashboard
-const APPOINTMENTS_DATA = [
-  {
-    id: "APT-1234",
-    patientName: "Rahul Sharma",
-    doctorName: "Dr. Sarah Johnson",
-    date: "2023-05-15",
-    time: "10:00 AM",
-    status: "confirmed",
-    department: "Cardiology",
-  },
-  {
-    id: "APT-1235",
-    patientName: "Priya Patel",
-    doctorName: "Dr. Michael Chen",
-    date: "2023-05-15",
-    time: "11:30 AM",
-    status: "completed",
-    department: "Neurology",
-  },
-  {
-    id: "APT-1236",
-    patientName: "Amit Kumar",
-    doctorName: "Dr. Emily Rodriguez",
-    date: "2023-05-15",
-    time: "2:00 PM",
-    status: "cancelled",
-    department: "Dermatology",
-  },
-  {
-    id: "APT-1237",
-    patientName: "Neha Singh",
-    doctorName: "Dr. James Wilson",
-    date: "2023-05-16",
-    time: "9:30 AM",
-    status: "confirmed",
-    department: "Orthopedics",
-  },
-  {
-    id: "APT-1238",
-    patientName: "Vikram Mehta",
-    doctorName: "Dr. Sarah Johnson",
-    date: "2023-05-16",
-    time: "3:00 PM",
-    status: "pending",
-    department: "Cardiology",
-  },
-]
-
-const AMBULANCE_DATA = [
-  {
-    id: "AMB-1001",
-    driverName: "Rajesh Kumar",
-    vehicleNumber: "DL 01 AB 1234",
-    status: "available",
-    location: "North Delhi",
-    lastService: "2023-04-28",
-  },
-  {
-    id: "AMB-1002",
-    driverName: "Suresh Yadav",
-    vehicleNumber: "DL 01 CD 5678",
-    status: "on_call",
-    location: "South Delhi",
-    lastService: "2023-05-05",
-  },
-  {
-    id: "AMB-1003",
-    driverName: "Mahesh Singh",
-    vehicleNumber: "DL 01 EF 9012",
-    status: "maintenance",
-    location: "Workshop",
-    lastService: "2023-05-12",
-  },
-  {
-    id: "AMB-1004",
-    driverName: "Dinesh Gupta",
-    vehicleNumber: "DL 01 GH 3456",
-    status: "available",
-    location: "East Delhi",
-    lastService: "2023-04-15",
-  },
-  {
-    id: "AMB-1005",
-    driverName: "Ramesh Verma",
-    vehicleNumber: "DL 01 IJ 7890",
-    status: "on_call",
-    location: "West Delhi",
-    lastService: "2023-05-01",
-  },
-]
-
-const EMERGENCY_CALLS = [
-  {
-    id: "CALL-2001",
-    patientName: "Ananya Reddy",
-    contactNumber: "+91 98765 43210",
-    location: "Connaught Place, New Delhi",
-    emergencyType: "Cardiac",
-    status: "dispatched",
-    ambulanceId: "AMB-1002",
-    timestamp: "2023-05-15T10:15:00",
-  },
-  {
-    id: "CALL-2002",
-    patientName: "Ravi Malhotra",
-    contactNumber: "+91 87654 32109",
-    location: "Lajpat Nagar, New Delhi",
-    emergencyType: "Accident",
-    status: "completed",
-    ambulanceId: "AMB-1005",
-    timestamp: "2023-05-15T09:30:00",
-  },
-  {
-    id: "CALL-2003",
-    patientName: "Sanjay Kapoor",
-    contactNumber: "+91 76543 21098",
-    location: "Rohini, New Delhi",
-    emergencyType: "Respiratory",
-    status: "in_progress",
-    ambulanceId: "AMB-1002",
-    timestamp: "2023-05-15T11:45:00",
-  },
-]
-
-// Update the AdminDashboardPage component to fetch ambulances from the API
+// Update the AdminDashboardPage component to fetch data from the API
 export default function AdminDashboardPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("overview")
-  const [appointments, setAppointments] = useState(APPOINTMENTS_DATA)
-  const [ambulances, setAmbulances] = useState(AMBULANCE_DATA)
-  const [emergencyCalls, setEmergencyCalls] = useState(EMERGENCY_CALLS)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [ambulances, setAmbulances] = useState<AmbulanceType[]>([])
+  const [emergencyCalls, setEmergencyCalls] = useState<Emergency[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
 
@@ -201,35 +77,177 @@ export default function AdminDashboardPage() {
   const [isAddAppointmentModalOpen, setIsAddAppointmentModalOpen] = useState(false)
   const [isAddEmergencyModalOpen, setIsAddEmergencyModalOpen] = useState(false)
 
-  // Add loading state
-  const [isLoading, setIsLoading] = useState(true)
+  // Add loading states
+  const [isLoadingAmbulances, setIsLoadingAmbulances] = useState(true)
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true)
+  const [isLoadingEmergencies, setIsLoadingEmergencies] = useState(true)
+
+  // Get auth token
+  const [authToken, setAuthToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get the Firebase auth token from localStorage
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("firebase-auth-token")
+      setAuthToken(token)
+    }
+  }, [])
 
   // Fetch ambulances from the database on component mount
   useEffect(() => {
     const fetchAmbulances = async () => {
+      setIsLoadingAmbulances(true)
       try {
-        const response = await fetch("/api/ambulances")
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        }
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`
+        }
+
+        const response = await fetch("/api/ambulances", {
+          headers,
+        })
+
         if (response.ok) {
           const data = await response.json()
-          // If we have data from the API, use it; otherwise, fall back to mock data
-          if (data && data.length > 0) {
-            setAmbulances(data)
+          if (data && Array.isArray(data) && data.length > 0) {
+            // Format the data to match our interface
+            const formattedData = data.map((item: any) => ({
+              id: item._id || item.id,
+              driverName: item.driverName,
+              vehicleNumber: item.vehicleNumber,
+              status: item.status,
+              location: item.location,
+              lastService: item.lastService,
+            }))
+            setAmbulances(formattedData)
           }
+        } else {
+          throw new Error("Failed to fetch ambulances")
         }
       } catch (error) {
         console.error("Error fetching ambulances:", error)
         toast({
           title: "Error",
-          description: "Failed to load ambulances. Using sample data instead.",
+          description: "Failed to load ambulances. Please try again later.",
           variant: "destructive",
         })
       } finally {
-        setIsLoading(false)
+        setIsLoadingAmbulances(false)
       }
     }
 
-    fetchAmbulances()
-  }, [toast])
+    if (authToken) {
+      fetchAmbulances()
+    }
+  }, [toast, authToken])
+
+  // Fetch appointments from the database
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      setIsLoadingAppointments(true)
+      try {
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        }
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`
+        }
+
+        const response = await fetch("/api/appointments", {
+          headers,
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data && Array.isArray(data) && data.length > 0) {
+            // Format the data to match our interface
+            const formattedData = data.map((item: any) => ({
+              id: item._id || item.id,
+              patientName: item.patientName,
+              doctorName: item.doctorName || "Dr. Unknown",
+              date: item.date,
+              time: item.time,
+              status: item.status,
+              department: item.department || "General",
+            }))
+            setAppointments(formattedData)
+          }
+        } else {
+          throw new Error("Failed to fetch appointments")
+        }
+      } catch (error) {
+        console.error("Error fetching appointments:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load appointments. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingAppointments(false)
+      }
+    }
+
+    if (authToken) {
+      fetchAppointments()
+    }
+  }, [toast, authToken])
+
+  // Fetch emergency calls from the database
+  useEffect(() => {
+    const fetchEmergencyCalls = async () => {
+      setIsLoadingEmergencies(true)
+      try {
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        }
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`
+        }
+
+        const response = await fetch("/api/emergency", {
+          headers,
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data && Array.isArray(data) && data.length > 0) {
+            // Format the data to match our interface
+            const formattedData = data.map((item: any) => ({
+              id: item._id || item.id,
+              patientName: item.patientName,
+              contactNumber: item.contactNumber,
+              location: item.location,
+              emergencyType: item.emergencyType,
+              status: item.status,
+              ambulanceId: item.ambulanceId,
+              timestamp: item.timestamp || new Date().toISOString(),
+            }))
+            setEmergencyCalls(formattedData)
+          }
+        } else {
+          throw new Error("Failed to fetch emergency calls")
+        }
+      } catch (error) {
+        console.error("Error fetching emergency calls:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load emergency calls. Please try again later.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingEmergencies(false)
+      }
+    }
+
+    if (authToken) {
+      fetchEmergencyCalls()
+    }
+  }, [toast, authToken])
 
   // Function to handle adding a new ambulance
   const handleAddAmbulance = (newAmbulance: AmbulanceType) => {
@@ -264,9 +282,9 @@ export default function AdminDashboardPage() {
   // Filter appointments based on search query and status
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.id.toLowerCase().includes(searchQuery.toLowerCase())
+      (appointment.patientName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (appointment.doctorName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (appointment.id?.toLowerCase() || "").includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || appointment.status === statusFilter
 
@@ -288,8 +306,11 @@ export default function AdminDashboardPage() {
     totalAmbulances: ambulances.length,
     availableAmbulances: ambulances.filter((a) => a.status === "available").length,
     activeEmergencies: emergencyCalls.filter((c) => c.status === "in_progress" || c.status === "dispatched").length,
-    totalRevenue: "₹45,250",
+    totalRevenue: "₹45,250", // This could be calculated from actual payment data in a real app
   }
+
+  // Loading state for the entire dashboard
+  const isLoading = isLoadingAmbulances || isLoadingAppointments || isLoadingEmergencies
 
   return (
     <div className="container px-4 md:px-6 py-8 md:py-12">
@@ -305,555 +326,612 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground">Manage hospital operations, appointments, and emergency services</p>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-primary/10 p-1">
-          <TabsTrigger
-            value="overview"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="appointments"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Appointments
-          </TabsTrigger>
-          <TabsTrigger
-            value="ambulances"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Ambulance className="h-4 w-4 mr-2" />
-            Ambulances
-          </TabsTrigger>
-          <TabsTrigger
-            value="emergency"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Activity className="h-4 w-4 mr-2" />
-            Emergency Calls
-          </TabsTrigger>
-        </TabsList>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading dashboard data...</p>
+        </div>
+      ) : (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="bg-primary/10 p-1">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="appointments"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Appointments
+            </TabsTrigger>
+            <TabsTrigger
+              value="ambulances"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Ambulance className="h-4 w-4 mr-2" />
+              Ambulances
+            </TabsTrigger>
+            <TabsTrigger
+              value="emergency"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Emergency Calls
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalAppointments}</div>
-                <p className="text-xs text-muted-foreground">{stats.confirmedAppointments} confirmed for today</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Ambulance Fleet</CardTitle>
-                <Ambulance className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalAmbulances}</div>
-                <p className="text-xs text-muted-foreground">{stats.availableAmbulances} currently available</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Active Emergencies</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeEmergencies}</div>
-                <p className="text-xs text-muted-foreground">
-                  {emergencyCalls.filter((c) => c.status === "in_progress").length} in progress
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalRevenue}</div>
-                <p className="text-xs text-muted-foreground">+12% from last month</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Recent Appointments</CardTitle>
-                <CardDescription>Latest 5 appointments across all departments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {appointments.slice(0, 5).map((appointment) => (
-                      <TableRow key={appointment.id}>
-                        <TableCell className="font-medium">{appointment.patientName}</TableCell>
-                        <TableCell>{appointment.doctorName}</TableCell>
-                        <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              appointment.status === "confirmed"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                                : appointment.status === "completed"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                                  : appointment.status === "cancelled"
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
-                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                            }
-                          >
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Emergency Calls</CardTitle>
-                <CardDescription>Active and recent emergency calls</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {emergencyCalls.map((call) => (
-                      <TableRow key={call.id}>
-                        <TableCell className="font-medium">{call.patientName}</TableCell>
-                        <TableCell>{call.emergencyType}</TableCell>
-                        <TableCell className="truncate max-w-[150px]">{call.location}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              call.status === "dispatched"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                                : call.status === "completed"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                            }
-                          >
-                            {call.status === "dispatched"
-                              ? "Dispatched"
-                              : call.status === "in_progress"
-                                ? "In Progress"
-                                : "Completed"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="appointments" className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between gap-4">
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search appointments..."
-                  className="pl-8 border-primary/20 bg-primary/5 focus-visible:ring-primary w-[250px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px] border-primary/20 bg-primary/5 focus-visible:ring-primary">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+                  <p className="text-xs text-muted-foreground">{stats.confirmedAppointments} confirmed for today</p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Ambulance Fleet</CardTitle>
+                  <Ambulance className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalAmbulances}</div>
+                  <p className="text-xs text-muted-foreground">{stats.availableAmbulances} currently available</p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Active Emergencies</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeEmergencies}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {emergencyCalls.filter((c) => c.status === "in_progress").length} in progress
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalRevenue}</div>
+                  <p className="text-xs text-muted-foreground">+12% from last month</p>
+                </CardContent>
+              </Card>
             </div>
-            <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddAppointmentModalOpen(true)}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Appointment
-            </Button>
-          </div>
 
-          <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Patient</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Date & Time</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAppointments.map((appointment) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell className="font-medium">{appointment.id}</TableCell>
-                      <TableCell>{appointment.patientName}</TableCell>
-                      <TableCell>{appointment.doctorName}</TableCell>
-                      <TableCell>{appointment.department}</TableCell>
-                      <TableCell>
-                        {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            appointment.status === "confirmed"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                              : appointment.status === "completed"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                                : appointment.status === "cancelled"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
-                                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                          }
-                        >
-                          {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                            onClick={() => {
-                              toast({
-                                title: "View Appointment",
-                                description: `Viewing details for appointment ${appointment.id}`,
-                              })
-                            }}
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                          {appointment.status === "pending" && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
-                                onClick={() => {
-                                  const updatedAppointments = appointments.map((a) =>
-                                    a.id === appointment.id ? { ...a, status: "confirmed" } : a,
-                                  )
-                                  setAppointments(updatedAppointments)
-                                  toast({
-                                    title: "Appointment Confirmed",
-                                    description: `Appointment ${appointment.id} has been confirmed.`,
-                                  })
-                                }}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle>Recent Appointments</CardTitle>
+                  <CardDescription>Latest 5 appointments across all departments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingAppointments ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    </div>
+                  ) : appointments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No appointments found. Add your first appointment.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Doctor</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {appointments.slice(0, 5).map((appointment) => (
+                          <TableRow key={appointment.id}>
+                            <TableCell className="font-medium">{appointment.patientName}</TableCell>
+                            <TableCell>{appointment.doctorName}</TableCell>
+                            <TableCell>{new Date(appointment.date).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  appointment.status === "confirmed"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                                    : appointment.status === "completed"
+                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                                      : appointment.status === "cancelled"
+                                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
+                                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                                }
                               >
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="sr-only">Confirm</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:bg-red-100 hover:text-red-800"
-                                onClick={() => {
-                                  const updatedAppointments = appointments.map((a) =>
-                                    a.id === appointment.id ? { ...a, status: "cancelled" } : a,
-                                  )
-                                  setAppointments(updatedAppointments)
-                                  toast({
-                                    title: "Appointment Cancelled",
-                                    description: `Appointment ${appointment.id} has been cancelled.`,
-                                  })
-                                }}
-                              >
-                                <XCircle className="h-4 w-4" />
-                                <span className="sr-only">Cancel</span>
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
 
-        <TabsContent value="ambulances" className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between gap-4">
-            <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px] border-primary/20 bg-primary/5 focus-visible:ring-primary">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="on_call">On Call</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle>Emergency Calls</CardTitle>
+                  <CardDescription>Active and recent emergency calls</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingEmergencies ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    </div>
+                  ) : emergencyCalls.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No emergency calls found. Add your first emergency call.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {emergencyCalls.map((call) => (
+                          <TableRow key={call.id}>
+                            <TableCell className="font-medium">{call.patientName}</TableCell>
+                            <TableCell>{call.emergencyType}</TableCell>
+                            <TableCell className="truncate max-w-[150px]">{call.location}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  call.status === "dispatched"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                                    : call.status === "completed"
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                                }
+                              >
+                                {call.status === "dispatched"
+                                  ? "Dispatched"
+                                  : call.status === "in_progress"
+                                    ? "In Progress"
+                                    : "Completed"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-            <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddAmbulanceModalOpen(true)}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Ambulance
-            </Button>
-          </div>
+          </TabsContent>
 
-          <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Vehicle Number</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Last Service</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAmbulances.map((ambulance) => (
-                    <TableRow key={ambulance.id}>
-                      <TableCell className="font-medium">{ambulance.id}</TableCell>
-                      <TableCell>{ambulance.driverName}</TableCell>
-                      <TableCell>{ambulance.vehicleNumber}</TableCell>
-                      <TableCell>{ambulance.location}</TableCell>
-                      <TableCell>{new Date(ambulance.lastService).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            ambulance.status === "available"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                              : ambulance.status === "on_call"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                          }
-                        >
-                          {ambulance.status === "available"
-                            ? "Available"
-                            : ambulance.status === "on_call"
-                              ? "On Call"
-                              : "Maintenance"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                            onClick={() => {
-                              toast({
-                                title: "View Ambulance",
-                                description: `Viewing details for ambulance ${ambulance.id}`,
-                              })
-                            }}
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span className="sr-only">View</span>
-                          </Button>
-                          {ambulance.status !== "maintenance" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-yellow-100 hover:text-yellow-800"
-                              onClick={() => {
-                                const updatedAmbulances = ambulances.map((a) =>
-                                  a.id === ambulance.id ? { ...a, status: "maintenance" } : a,
-                                )
-                                setAmbulances(updatedAmbulances)
-                                toast({
-                                  title: "Maintenance Scheduled",
-                                  description: `Ambulance ${ambulance.id} has been scheduled for maintenance.`,
-                                })
-                              }}
-                            >
-                              <AlertTriangle className="h-4 w-4" />
-                              <span className="sr-only">Maintenance</span>
-                            </Button>
-                          )}
-                          {ambulance.status === "maintenance" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
-                              onClick={() => {
-                                const updatedAmbulances = ambulances.map((a) =>
-                                  a.id === ambulance.id ? { ...a, status: "available" } : a,
-                                )
-                                setAmbulances(updatedAmbulances)
-                                toast({
-                                  title: "Maintenance Completed",
-                                  description: `Ambulance ${ambulance.id} is now available.`,
-                                })
-                              }}
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              <span className="sr-only">Available</span>
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="emergency" className="space-y-6">
-          <div className="grid gap-6">
-            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Active Emergency Calls</CardTitle>
-                  <CardDescription>Real-time tracking of emergency situations</CardDescription>
+          <TabsContent value="appointments" className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search appointments..."
+                    className="pl-8 border-primary/20 bg-primary/5 focus-visible:ring-primary w-[250px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
-                <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddEmergencyModalOpen(true)}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  New Emergency
-                </Button>
-              </CardHeader>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px] border-primary/20 bg-primary/5 focus-visible:ring-primary">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddAppointmentModalOpen(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                New Appointment
+              </Button>
+            </div>
+
+            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Emergency Type</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Ambulance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {emergencyCalls.map((call) => (
-                      <TableRow key={call.id}>
-                        <TableCell className="font-medium">{call.id}</TableCell>
-                        <TableCell>{call.patientName}</TableCell>
-                        <TableCell>{call.emergencyType}</TableCell>
-                        <TableCell className="truncate max-w-[150px]">{call.location}</TableCell>
-                        <TableCell>{call.ambulanceId}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              call.status === "dispatched"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                                : call.status === "completed"
+                {isLoadingAppointments ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  </div>
+                ) : filteredAppointments.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No appointments found. Add your first appointment or adjust your filters.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Patient</TableHead>
+                        <TableHead>Doctor</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAppointments.map((appointment) => (
+                        <TableRow key={appointment.id}>
+                          <TableCell className="font-medium">{appointment.id}</TableCell>
+                          <TableCell>{appointment.patientName}</TableCell>
+                          <TableCell>{appointment.doctorName}</TableCell>
+                          <TableCell>{appointment.department}</TableCell>
+                          <TableCell>
+                            {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                appointment.status === "confirmed"
                                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                            }
-                          >
-                            {call.status === "dispatched"
-                              ? "Dispatched"
-                              : call.status === "in_progress"
-                                ? "In Progress"
-                                : "Completed"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">{new Date(call.timestamp).toLocaleTimeString()}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                              onClick={() => {
-                                toast({
-                                  title: "View Emergency Call",
-                                  description: `Viewing details for emergency call ${call.id}`,
-                                })
-                              }}
+                                  : appointment.status === "completed"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                                    : appointment.status === "cancelled"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800"
+                                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                              }
                             >
-                              <FileText className="h-4 w-4" />
-                              <span className="sr-only">View</span>
-                            </Button>
-                            {call.status !== "completed" && (
+                              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
+                                className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
                                 onClick={() => {
-                                  const updatedCalls = emergencyCalls.map((c) =>
-                                    c.id === call.id ? { ...c, status: "completed" } : c,
-                                  )
-                                  setEmergencyCalls(updatedCalls)
-
-                                  // Update ambulance status
-                                  const updatedAmbulances = ambulances.map((a) =>
-                                    a.id === call.ambulanceId ? { ...a, status: "available" } : a,
-                                  )
-                                  setAmbulances(updatedAmbulances)
-
                                   toast({
-                                    title: "Emergency Call Completed",
-                                    description: `Emergency call ${call.id} has been marked as completed.`,
+                                    title: "View Appointment",
+                                    description: `Viewing details for appointment ${appointment.id}`,
                                   })
                                 }}
                               >
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="sr-only">Complete</span>
+                                <FileText className="h-4 w-4" />
+                                <span className="sr-only">View</span>
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                              {appointment.status === "pending" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
+                                    onClick={() => {
+                                      const updatedAppointments = appointments.map((a) =>
+                                        a.id === appointment.id ? { ...a, status: "confirmed" } : a,
+                                      )
+                                      setAppointments(updatedAppointments)
+                                      toast({
+                                        title: "Appointment Confirmed",
+                                        description: `Appointment ${appointment.id} has been confirmed.`,
+                                      })
+                                    }}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span className="sr-only">Confirm</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-red-100 hover:text-red-800"
+                                    onClick={() => {
+                                      const updatedAppointments = appointments.map((a) =>
+                                        a.id === appointment.id ? { ...a, status: "cancelled" } : a,
+                                      )
+                                      setAppointments(updatedAppointments)
+                                      toast({
+                                        title: "Appointment Cancelled",
+                                        description: `Appointment ${appointment.id} has been cancelled.`,
+                                      })
+                                    }}
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                    <span className="sr-only">Cancel</span>
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="ambulances" className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
+              <div className="flex gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px] border-primary/20 bg-primary/5 focus-visible:ring-primary">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="on_call">On Call</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddAmbulanceModalOpen(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Ambulance
+              </Button>
+            </div>
+
+            <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+              <CardContent className="p-0">
+                {isLoadingAmbulances ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                  </div>
+                ) : filteredAmbulances.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    No ambulances found. Add your first ambulance or adjust your filters.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Driver</TableHead>
+                        <TableHead>Vehicle Number</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Last Service</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAmbulances.map((ambulance) => (
+                        <TableRow key={ambulance.id}>
+                          <TableCell className="font-medium">{ambulance.id}</TableCell>
+                          <TableCell>{ambulance.driverName}</TableCell>
+                          <TableCell>{ambulance.vehicleNumber}</TableCell>
+                          <TableCell>{ambulance.location}</TableCell>
+                          <TableCell>{new Date(ambulance.lastService).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                ambulance.status === "available"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                                  : ambulance.status === "on_call"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                              }
+                            >
+                              {ambulance.status === "available"
+                                ? "Available"
+                                : ambulance.status === "on_call"
+                                  ? "On Call"
+                                  : "Maintenance"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                                onClick={() => {
+                                  toast({
+                                    title: "View Ambulance",
+                                    description: `Viewing details for ambulance ${ambulance.id}`,
+                                  })
+                                }}
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span className="sr-only">View</span>
+                              </Button>
+                              {ambulance.status !== "maintenance" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-yellow-100 hover:text-yellow-800"
+                                  onClick={() => {
+                                    const updatedAmbulances = ambulances.map((a) =>
+                                      a.id === ambulance.id ? { ...a, status: "maintenance" } : a,
+                                    )
+                                    setAmbulances(updatedAmbulances)
+                                    toast({
+                                      title: "Maintenance Scheduled",
+                                      description: `Ambulance ${ambulance.id} has been scheduled for maintenance.`,
+                                    })
+                                  }}
+                                >
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <span className="sr-only">Maintenance</span>
+                                </Button>
+                              )}
+                              {ambulance.status === "maintenance" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
+                                  onClick={() => {
+                                    const updatedAmbulances = ambulances.map((a) =>
+                                      a.id === ambulance.id ? { ...a, status: "available" } : a,
+                                    )
+                                    setAmbulances(updatedAmbulances)
+                                    toast({
+                                      title: "Maintenance Completed",
+                                      description: `Ambulance ${ambulance.id} is now available.`,
+                                    })
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="sr-only">Available</span>
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="emergency" className="space-y-6">
+            <div className="grid gap-6">
+              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Active Emergency Calls</CardTitle>
+                    <CardDescription>Real-time tracking of emergency situations</CardDescription>
+                  </div>
+                  <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddEmergencyModalOpen(true)}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    New Emergency
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {isLoadingEmergencies ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    </div>
+                  ) : emergencyCalls.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No emergency calls found. Add your first emergency call.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Patient</TableHead>
+                          <TableHead>Emergency Type</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Ambulance</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {emergencyCalls.map((call) => (
+                          <TableRow key={call.id}>
+                            <TableCell className="font-medium">{call.id}</TableCell>
+                            <TableCell>{call.patientName}</TableCell>
+                            <TableCell>{call.emergencyType}</TableCell>
+                            <TableCell className="truncate max-w-[150px]">{call.location}</TableCell>
+                            <TableCell>{call.ambulanceId}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  call.status === "dispatched"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
+                                    : call.status === "completed"
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                                }
+                              >
+                                {call.status === "dispatched"
+                                  ? "Dispatched"
+                                  : call.status === "in_progress"
+                                    ? "In Progress"
+                                    : "Completed"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs">{new Date(call.timestamp).toLocaleTimeString()}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                                  onClick={() => {
+                                    toast({
+                                      title: "View Emergency Call",
+                                      description: `Viewing details for emergency call ${call.id}`,
+                                    })
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  <span className="sr-only">View</span>
+                                </Button>
+                                {call.status !== "completed" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
+                                    onClick={() => {
+                                      const updatedCalls = emergencyCalls.map((c) =>
+                                        c.id === call.id ? { ...c, status: "completed" } : c,
+                                      )
+                                      setEmergencyCalls(updatedCalls)
+
+                                      // Update ambulance status
+                                      const updatedAmbulances = ambulances.map((a) =>
+                                        a.id === call.ambulanceId ? { ...a, status: "available" } : a,
+                                      )
+                                      setAmbulances(updatedAmbulances)
+
+                                      toast({
+                                        title: "Emergency Call Completed",
+                                        description: `Emergency call ${call.id} has been marked as completed.`,
+                                      })
+                                    }}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span className="sr-only">Complete</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Add the modals */}
       <AddAmbulanceModal

@@ -115,7 +115,18 @@ export function AddAppointmentModal({ isOpen, onClose, onAddAppointment }: AddAp
 
       const data = await response.json()
 
-      onAddAppointment(data)
+      // Create a properly formatted appointment object with all required fields
+      const newAppointment = {
+        id: data.id || data._id,
+        patientName: formData.patientName,
+        doctorName: "Dr. " + (doctors.find((d) => d._id === formData.doctorId)?.name || "Unknown"),
+        date: formData.date,
+        time: formData.time,
+        status: formData.status,
+        department: doctors.find((d) => d._id === formData.doctorId)?.specialty || "General",
+      }
+
+      onAddAppointment(newAppointment)
 
       toast({
         title: "Appointment Added",
