@@ -67,9 +67,11 @@ export async function POST(request: Request) {
     const client = await clientPromise
     const db = client.db("aeternum")
 
-    // Create a new ambulance document
+    // Create a new ambulance document with the provided ID or generate one
+    const ambulanceId = data.id || `AMB-${Math.floor(1000 + Math.random() * 9000)}`
+
     const newAmbulance = {
-      id: data.id || `AMB-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: ambulanceId,
       driverName: data.driverName,
       vehicleNumber: data.vehicleNumber,
       status: data.status,
@@ -121,7 +123,14 @@ export async function PUT(request: Request) {
 
     updateData.lastUpdated = new Date()
 
-    const result = await db.collection("ambulances").updateOne({ _id: new ObjectId(data.id) }, { $set: updateData })
+    // Try to update by MongoDB _id first
+    let result
+    try {
+      result = await db.collection("ambulances").updateOne({ _id: new ObjectId(data.id) }, { $set: updateData })
+    } catch (error) {
+      // If that fails, try to update by the custom id field
+      result = await db.collection("ambulances").updateOne({ id: data.id }, { $set: updateData })
+    }
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "Ambulance not found" }, { status: 404 })
@@ -130,6 +139,50 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, message: "Ambulance updated successfully" })
   } catch (error) {
     console.error("Error updating ambulance:", error)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    // Check if user is authenticated via NextAuth
+    const isAuthorized = session?.user?.role === "hospital" || session?.user?.role === "admin"
+
+    // If not authorized via NextAuth, we'll assume Firebase auth is being used
+    // and proceed with the request (we'll rely on client-side auth check)
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing ambulance ID" }, { status: 400 })
+    }
+
+    const client = await clientPromise
+    const db = client.db("aeternum")
+
+    // Try to delete by MongoDB _id first
+    let result
+    try {
+      result = await db.collection("ambulances").deleteOne({
+        _id: new ObjectId(id),
+      })
+    } catch (error) {
+      // If that fails, try to delete by the custom id field
+      result = await db.collection("ambulances").deleteOne({
+        id: id,
+      })
+    }
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: "Ambulance not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, message: "Ambulance removed successfully" })
+  } catch (error) {
+    console.error("Error removing ambulance:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }

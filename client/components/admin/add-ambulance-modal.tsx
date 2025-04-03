@@ -59,6 +59,12 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     setIsSubmitting(true)
 
     try {
+      // Generate a custom ambulance ID if not provided
+      const ambulanceData = {
+        ...formData,
+        id: `AMB-${Math.floor(1000 + Math.random() * 9000)}`, // Generate ID like AMB-1234
+      }
+
       // Get the current Firebase auth token if available
       let authHeaders = {}
       if (authToken) {
@@ -74,7 +80,7 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
           "Content-Type": "application/json",
           ...authHeaders,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(ambulanceData),
       })
 
       if (!response.ok) {
@@ -89,9 +95,9 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
         description: `New ambulance ${result.data.id} has been added successfully.`,
       })
 
-      // Update the UI with the new ambulance data, including the ID from the database
+      // Update the UI with the new ambulance data, using the custom ID
       onAddAmbulance({
-        id: result.data._id,
+        id: result.data.id, // Use the custom ID from the response
         driverName: formData.driverName,
         vehicleNumber: formData.vehicleNumber,
         status: formData.status,

@@ -34,16 +34,13 @@ export default function HospitalLoginPage() {
     }
   }, [])
 
+  // Update the handleRedirectToAdminDashboard function to use window.location.href directly
+  // instead of trying router.push first, which seems to be causing the navigation issue
+
   const handleRedirectToAdminDashboard = () => {
     setShowSuccessAnimation(true)
     setTimeout(() => {
-      try {
-        router.push("/admin/dashboard")
-      } catch (error) {
-        console.error("Navigation error:", error)
-        // Fallback to window.location if router.push fails
-        window.location.href = "/admin/dashboard"
-      }
+      window.location.href = "/admin/dashboard"
     }, 1500)
   }
 

@@ -23,6 +23,7 @@ import {
   XCircle,
   AlertTriangle,
   Loader2,
+  Trash2,
 } from "lucide-react"
 import { AddAmbulanceModal } from "@/components/admin/add-ambulance-modal"
 import { AddAppointmentModal } from "@/components/admin/add-appointment-modal"
@@ -310,6 +311,80 @@ export default function AdminDashboardPage() {
 
   // Loading state for the entire dashboard
   const isLoading = isLoadingAmbulances || isLoadingAppointments || isLoadingEmergencies
+
+  // Function to update ambulance status in the database
+  const updateAmbulanceStatus = async (ambulanceId: string, newStatus: string) => {
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+
+      const response = await fetch("/api/ambulances", {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          id: ambulanceId,
+          status: newStatus,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update ambulance status")
+      }
+    } catch (error) {
+      console.error("Error updating ambulance status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update ambulance status. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Function to remove ambulance from the database
+  const removeAmbulance = async (ambulanceId: string) => {
+    if (!confirm("Are you sure you want to remove this ambulance?")) {
+      return
+    }
+
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      }
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+
+      const response = await fetch(`/api/ambulances?id=${ambulanceId}`, {
+        method: "DELETE",
+        headers,
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to remove ambulance")
+      }
+
+      // Update the UI by removing the ambulance from the state
+      setAmbulances((prev) => prev.filter((ambulance) => ambulance.id !== ambulanceId))
+
+      toast({
+        title: "Ambulance Removed",
+        description: `Ambulance ${ambulanceId} has been removed successfully.`,
+      })
+    } catch (error) {
+      console.error("Error removing ambulance:", error)
+      toast({
+        title: "Error",
+        description: "Failed to remove ambulance. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <div className="container px-4 md:px-6 py-8 md:py-12">
@@ -756,46 +831,55 @@ export default function AdminDashboardPage() {
                                 <FileText className="h-4 w-4" />
                                 <span className="sr-only">View</span>
                               </Button>
-                              {ambulance.status !== "maintenance" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-yellow-100 hover:text-yellow-800"
-                                  onClick={() => {
-                                    const updatedAmbulances = ambulances.map((a) =>
-                                      a.id === ambulance.id ? { ...a, status: "maintenance" } : a,
-                                    )
-                                    setAmbulances(updatedAmbulances)
-                                    toast({
-                                      title: "Maintenance Scheduled",
-                                      description: `Ambulance ${ambulance.id} has been scheduled for maintenance.`,
-                                    })
-                                  }}
-                                >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-yellow-100 hover:text-yellow-800"
+                                onClick={() => {
+                                  // Cycle through statuses: available -> on_call -> maintenance -> available
+                                  const newStatus =
+                                    ambulance.status === "available"
+                                      ? "on_call"
+                                      : ambulance.status === "on_call"
+                                        ? "maintenance"
+                                        : "available"
+
+                                  // Update ambulance status in the database
+                                  updateAmbulanceStatus(ambulance.id, newStatus)
+
+                                  // Update local state
+                                  const updatedAmbulances = ambulances.map((a) =>
+                                    a.id === ambulance.id ? { ...a, status: newStatus } : a,
+                                  )
+                                  setAmbulances(updatedAmbulances)
+
+                                  toast({
+                                    title: "Status Updated",
+                                    description: `Ambulance ${ambulance.id} status changed to ${newStatus.replace("_", " ")}.`,
+                                  })
+                                }}
+                              >
+                                {ambulance.status === "available" ? (
+                                  <Ambulance className="h-4 w-4" />
+                                ) : ambulance.status === "on_call" ? (
                                   <AlertTriangle className="h-4 w-4" />
-                                  <span className="sr-only">Maintenance</span>
-                                </Button>
-                              )}
-                              {ambulance.status === "maintenance" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
-                                  onClick={() => {
-                                    const updatedAmbulances = ambulances.map((a) =>
-                                      a.id === ambulance.id ? { ...a, status: "available" } : a,
-                                    )
-                                    setAmbulances(updatedAmbulances)
-                                    toast({
-                                      title: "Maintenance Completed",
-                                      description: `Ambulance ${ambulance.id} is now available.`,
-                                    })
-                                  }}
-                                >
+                                ) : (
                                   <CheckCircle className="h-4 w-4" />
-                                  <span className="sr-only">Available</span>
-                                </Button>
-                              )}
+                                )}
+                                <span className="sr-only">Change Status</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-red-100 hover:text-red-800"
+                                onClick={() => {
+                                  // Call function to remove ambulance
+                                  removeAmbulance(ambulance.id)
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Remove</span>
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
