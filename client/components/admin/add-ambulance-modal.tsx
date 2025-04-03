@@ -64,11 +64,20 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
       // First update the UI optimistically
       onAddAmbulance(newAmbulance)
 
+      // Get the current Firebase auth token if available
+      let authHeaders = {}
+      if (typeof window !== "undefined" && window.localStorage.getItem("firebase-auth-token")) {
+        authHeaders = {
+          Authorization: `Bearer ${window.localStorage.getItem("firebase-auth-token")}`,
+        }
+      }
+
       // Then save to the database
       const response = await fetch("/api/ambulances", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...authHeaders,
         },
         body: JSON.stringify(newAmbulance),
       })

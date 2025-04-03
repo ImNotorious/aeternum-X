@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,15 @@ export function AddEmergencyModal({ isOpen, onClose, onAddEmergency, availableAm
     status: "dispatched",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authToken, setAuthToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get the Firebase auth token from localStorage
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("firebase-auth-token")
+      setAuthToken(token)
+    }
+  }, [])
 
   const emergencyTypes = ["Accident", "Cardiac", "Respiratory", "Stroke", "Trauma", "Other"]
 
@@ -52,25 +61,40 @@ export function AddEmergencyModal({ isOpen, onClose, onAddEmergency, availableAm
     setIsSubmitting(true)
 
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll simulate adding a new emergency call
-      const timestamp = new Date().toISOString()
-      const newEmergency = {
-        id: `CALL-${Math.floor(2000 + Math.random() * 9000)}`,
-        patientName: formData.patientName,
-        contactNumber: formData.contactNumber,
-        location: formData.location,
-        emergencyType: formData.emergencyType,
-        ambulanceId: formData.ambulanceId,
-        status: formData.status,
-        timestamp,
+      // Make an API call to create a new emergency
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
       }
 
-      onAddEmergency(newEmergency)
+      // Add auth token if available
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+
+      const response = await fetch("/api/emergency", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          patientName: formData.patientName,
+          contactNumber: formData.contactNumber,
+          location: formData.location,
+          emergencyType: formData.emergencyType,
+          ambulanceId: formData.ambulanceId || undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create emergency call")
+      }
+
+      const data = await response.json()
+
+      onAddEmergency(data)
 
       toast({
         title: "Emergency Call Added",
-        description: `New emergency call ${newEmergency.id} has been dispatched.`,
+        description: `New emergency call has been dispatched.`,
       })
 
       // Reset form and close modal
@@ -84,9 +108,10 @@ export function AddEmergencyModal({ isOpen, onClose, onAddEmergency, availableAm
       })
       onClose()
     } catch (error) {
+      console.error("Error creating emergency:", error)
       toast({
         title: "Error",
-        description: "Failed to add emergency call. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add emergency call. Please try again.",
         variant: "destructive",
       })
     } finally {

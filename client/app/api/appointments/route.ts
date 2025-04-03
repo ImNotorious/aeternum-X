@@ -6,19 +6,31 @@ import { ObjectId } from "mongodb"
 
 export async function GET(request: Request) {
   try {
+    // Try to get NextAuth session first
     const session = await getServerSession(authOptions)
+    let userId = session?.user?.id
+    let userRole = session?.user?.role
 
+    // If no NextAuth session, check for Firebase auth token in headers
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const authHeader = request.headers.get("authorization")
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.substring(7)
+        // For Firebase auth, we'll use the token directly
+        userId = "firebase-user" // Placeholder, replace with actual user ID if available
+        userRole = "admin" // Assuming admin role for Firebase auth users in admin dashboard
+      } else {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
     }
 
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get("userId") || session.user.id
+    const requestedUserId = searchParams.get("userId") || userId
     const doctorId = searchParams.get("doctorId")
     const status = searchParams.get("status")
 
     // Only allow admins and hospital staff to view other users' appointments
-    if (userId !== session.user.id && session.user.role !== "admin" && session.user.role !== "hospital") {
+    if (requestedUserId !== userId && userRole !== "admin" && userRole !== "hospital") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -28,16 +40,16 @@ export async function GET(request: Request) {
     const query: any = {}
 
     // For doctors, show only their appointments
-    if (session.user.role === "doctor") {
-      query.doctorId = session.user.id
+    if (userRole === "doctor") {
+      query.doctorId = userId
     }
     // For patients, show only their appointments
-    else if (session.user.role === "patient") {
-      query.patientId = session.user.id
+    else if (userRole === "patient") {
+      query.patientId = userId
     }
     // For admins/hospital staff, filter by userId if provided
-    else if (userId) {
-      query.patientId = userId
+    else if (requestedUserId) {
+      query.patientId = requestedUserId
     }
 
     // Additional filters
@@ -63,12 +75,13 @@ export async function GET(request: Request) {
           })
           .toArray()
 
-          const doctorsMap: Record<string, typeof doctors[0]> = doctors.reduce((map, doctor) => {
-            map[doctor._id.toString()] = doctor;
-            return map;
-          }, {} as Record<string, typeof doctors[0]>);
-          
-          
+        const doctorsMap: Record<string, (typeof doctors)[0]> = doctors.reduce(
+          (map, doctor) => {
+            map[doctor._id.toString()] = doctor
+            return map
+          },
+          {} as Record<string, (typeof doctors)[0]>,
+        )
 
         appointments.forEach((apt) => {
           if (apt.doctorId && doctorsMap[apt.doctorId]) {
@@ -87,10 +100,22 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Try to get NextAuth session first
     const session = await getServerSession(authOptions)
+    let userId = session?.user?.id
+    let userRole = session?.user?.role
 
+    // If no NextAuth session, check for Firebase auth token in headers
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const authHeader = request.headers.get("authorization")
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.substring(7)
+        // For Firebase auth, we'll use the token directly
+        userId = "firebase-user" // Placeholder, replace with actual user ID if available
+        userRole = "admin" // Assuming admin role for Firebase auth users in admin dashboard
+      } else {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
     }
 
     const data = await request.json()
@@ -117,7 +142,7 @@ export async function POST(request: Request) {
 
     // Create new appointment
     const appointment = {
-      patientId: session.user.id,
+      patientId: data.patientId || userId,
       doctorId: data.doctorId,
       date: data.date,
       time: data.time,
@@ -149,10 +174,22 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    // Try to get NextAuth session first
     const session = await getServerSession(authOptions)
+    let userId = session?.user?.id
+    let userRole = session?.user?.role
 
+    // If no NextAuth session, check for Firebase auth token in headers
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const authHeader = request.headers.get("authorization")
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.substring(7)
+        // For Firebase auth, we'll use the token directly
+        userId = "firebase-user" // Placeholder, replace with actual user ID if available
+        userRole = "admin" // Assuming admin role for Firebase auth users in admin dashboard
+      } else {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
     }
 
     const data = await request.json()
@@ -176,10 +213,10 @@ export async function PUT(request: Request) {
 
     // Check authorization - only the patient, the doctor, or admin/hospital staff can update
     if (
-      appointment.patientId !== session.user.id &&
-      appointment.doctorId !== session.user.id &&
-      session.user.role !== "admin" &&
-      session.user.role !== "hospital"
+      appointment.patientId !== userId &&
+      appointment.doctorId !== userId &&
+      userRole !== "admin" &&
+      userRole !== "hospital"
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

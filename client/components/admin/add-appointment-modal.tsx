@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -27,21 +27,48 @@ export function AddAppointmentModal({ isOpen, onClose, onAddAppointment }: AddAp
   const { toast } = useToast()
   const [formData, setFormData] = useState({
     patientName: "",
-    doctorName: "",
-    department: "",
+    doctorId: "",
     date: new Date().toISOString().split("T")[0],
     time: "10:00",
     status: "confirmed",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [doctors, setDoctors] = useState<any[]>([])
+  const [authToken, setAuthToken] = useState<string | null>(null)
 
-  // Mock data for doctors and departments
-  const doctors = [
-    { name: "Dr. Sarah Johnson", department: "Cardiology" },
-    { name: "Dr. Michael Chen", department: "Neurology" },
-    { name: "Dr. Emily Rodriguez", department: "Dermatology" },
-    { name: "Dr. James Wilson", department: "Orthopedics" },
-  ]
+  useEffect(() => {
+    // Get the Firebase auth token from localStorage
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("firebase-auth-token")
+      setAuthToken(token)
+    }
+
+    // Fetch doctors list
+    const fetchDoctors = async () => {
+      try {
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        }
+
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`
+        }
+
+        const response = await fetch("/api/doctors", {
+          headers,
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setDoctors(data)
+        }
+      } catch (error) {
+        console.error("Error fetching doctors:", error)
+      }
+    }
+
+    fetchDoctors()
+  }, [authToken])
 
   const departments = ["Cardiology", "Neurology", "Dermatology", "Orthopedics", "General Medicine", "Pediatrics"]
 
@@ -52,14 +79,6 @@ export function AddAppointmentModal({ isOpen, onClose, onAddAppointment }: AddAp
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
-
-    // If doctor is selected, auto-fill department
-    if (name === "doctorName") {
-      const selectedDoctor = doctors.find((doctor) => doctor.name === value)
-      if (selectedDoctor) {
-        setFormData((prev) => ({ ...prev, department: selectedDoctor.department }))
-      }
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,39 +86,56 @@ export function AddAppointmentModal({ isOpen, onClose, onAddAppointment }: AddAp
     setIsSubmitting(true)
 
     try {
-      // In a real application, you would make an API call here
-      // For now, we'll simulate adding a new appointment
-      const newAppointment = {
-        id: `APT-${Math.floor(1000 + Math.random() * 9000)}`,
-        patientName: formData.patientName,
-        doctorName: formData.doctorName,
-        department: formData.department,
-        date: formData.date,
-        time: formData.time,
-        status: formData.status,
+      // Make an API call to create a new appointment
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
       }
 
-      onAddAppointment(newAppointment)
+      // Add auth token if available
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`
+      }
+
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          patientName: formData.patientName,
+          doctorId: formData.doctorId,
+          date: formData.date,
+          time: formData.time,
+          status: formData.status,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create appointment")
+      }
+
+      const data = await response.json()
+
+      onAddAppointment(data)
 
       toast({
         title: "Appointment Added",
-        description: `New appointment ${newAppointment.id} has been scheduled successfully.`,
+        description: `New appointment has been scheduled successfully.`,
       })
 
       // Reset form and close modal
       setFormData({
         patientName: "",
-        doctorName: "",
-        department: "",
+        doctorId: "",
         date: new Date().toISOString().split("T")[0],
         time: "10:00",
         status: "confirmed",
       })
       onClose()
     } catch (error) {
+      console.error("Error creating appointment:", error)
       toast({
         title: "Error",
-        description: "Failed to add appointment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add appointment. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -129,37 +165,20 @@ export function AddAppointmentModal({ isOpen, onClose, onAddAppointment }: AddAp
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="doctorName">Doctor</Label>
-              <Select value={formData.doctorName} onValueChange={(value) => handleSelectChange("doctorName", value)}>
-                <SelectTrigger id="doctorName" className="border-primary/20 bg-primary/5 focus-visible:ring-primary">
-                  <SelectValue placeholder="Select doctor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor.name} value={doctor.name}>
-                      {doctor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
-              <Select value={formData.department} onValueChange={(value) => handleSelectChange("department", value)}>
-                <SelectTrigger id="department" className="border-primary/20 bg-primary/5 focus-visible:ring-primary">
-                  <SelectValue placeholder="Select department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="doctorId">Doctor</Label>
+            <Select value={formData.doctorId} onValueChange={(value) => handleSelectChange("doctorId", value)}>
+              <SelectTrigger id="doctorId" className="border-primary/20 bg-primary/5 focus-visible:ring-primary">
+                <SelectValue placeholder="Select doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((doctor) => (
+                  <SelectItem key={doctor._id} value={doctor._id}>
+                    {doctor.name} - {doctor.specialty}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

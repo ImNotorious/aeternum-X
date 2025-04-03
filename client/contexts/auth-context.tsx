@@ -124,6 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  // Add a function to store the Firebase auth token in localStorage
   const signIn = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
@@ -131,6 +132,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Get role from localStorage
       const savedRole = getRoleFromLocalStorage(authUser.uid) || "patient"
+
+      // Store the auth token in localStorage
+      const token = await authUser.getIdToken()
+      if (typeof window !== "undefined") {
+        localStorage.setItem("firebase-auth-token", token)
+      }
 
       // Create extended user
       const extendedUser = {
@@ -148,60 +155,76 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInAsHospital = async (email: string, password: string): Promise<void> => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const authUser = userCredential.user;
-  
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const authUser = userCredential.user
+
       // Always set role to hospital for hospital login
-      const role = "hospital";
-      saveRoleToLocalStorage(authUser.uid, role);
-  
+      const role = "hospital"
+      saveRoleToLocalStorage(authUser.uid, role)
+
+      // Store the auth token in localStorage
+      const token = await authUser.getIdToken()
+      if (typeof window !== "undefined") {
+        localStorage.setItem("firebase-auth-token", token)
+      }
+
       // Create extended user
       const extendedUser = {
         ...authUser,
         role,
-      } as ExtendedUser;
-  
-      setUser(extendedUser);
-      setUserRole(role);
+      } as ExtendedUser
+
+      setUser(extendedUser)
+      setUserRole(role)
     } catch (error) {
-      console.error("Error during hospital sign in:", error);
-      throw error;
+      console.error("Error during hospital sign in:", error)
+      throw error
     }
-  };
-  
+  }
+
   const signInWithGoogle = async (isHospital?: boolean): Promise<void> => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const provider = new GoogleAuthProvider();
-  
+      const provider = new GoogleAuthProvider()
+
       provider.setCustomParameters({
         prompt: "select_account",
         login_hint: isHospital ? "hospital@example.com" : "patient@example.com",
-      });
-  
-      const result = await signInWithPopup(auth, provider);
-      const authUser = result.user;
-  
-      const role = isHospital ? "hospital" : "patient";
-      saveRoleToLocalStorage(authUser.uid, role);
-  
+      })
+
+      const result = await signInWithPopup(auth, provider)
+      const authUser = result.user
+
+      const role = isHospital ? "hospital" : "patient"
+      saveRoleToLocalStorage(authUser.uid, role)
+
+      // Store the auth token in localStorage
+      const token = await authUser.getIdToken()
+      if (typeof window !== "undefined") {
+        localStorage.setItem("firebase-auth-token", token)
+      }
+
       const extendedUser = {
         ...authUser,
         role,
-      } as ExtendedUser;
-  
-      setUser(extendedUser);
-      setUserRole(role);
+      } as ExtendedUser
+
+      setUser(extendedUser)
+      setUserRole(role)
     } catch (error) {
-      setLoading(false);
-      console.error("Google sign in error:", error);
-      throw error;
+      setLoading(false)
+      console.error("Google sign in error:", error)
+      throw error
     }
-  };
-  
+  }
 
   const logout = async () => {
     try {
+      // Clear the auth token from localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("firebase-auth-token")
+      }
+
       await signOut(auth)
       router.push("/")
     } catch (error) {
