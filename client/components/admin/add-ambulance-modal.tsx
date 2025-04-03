@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+
 import type React from "react"
 
 import { useState } from "react"
@@ -33,6 +35,15 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     lastService: new Date().toISOString().split("T")[0],
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authToken, setAuthToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get the Firebase auth token from localStorage
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("firebase-auth-token")
+      setAuthToken(token)
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -48,27 +59,11 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     setIsSubmitting(true)
 
     try {
-      // Generate a temporary ID for optimistic UI update
-      const tempId = `AMB-${Math.floor(1000 + Math.random() * 9000)}`
-
-      // Create the ambulance object
-      const newAmbulance = {
-        id: tempId,
-        driverName: formData.driverName,
-        vehicleNumber: formData.vehicleNumber,
-        status: formData.status,
-        location: formData.location,
-        lastService: formData.lastService,
-      }
-
-      // First update the UI optimistically
-      onAddAmbulance(newAmbulance)
-
       // Get the current Firebase auth token if available
       let authHeaders = {}
-      if (typeof window !== "undefined" && window.localStorage.getItem("firebase-auth-token")) {
+      if (authToken) {
         authHeaders = {
-          Authorization: `Bearer ${window.localStorage.getItem("firebase-auth-token")}`,
+          Authorization: `Bearer ${authToken}`,
         }
       }
 
@@ -79,7 +74,7 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
           "Content-Type": "application/json",
           ...authHeaders,
         },
-        body: JSON.stringify(newAmbulance),
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
@@ -91,7 +86,17 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
 
       toast({
         title: "Ambulance Added",
-        description: `New ambulance ${newAmbulance.id} has been added successfully.`,
+        description: `New ambulance ${result.data.id} has been added successfully.`,
+      })
+
+      // Update the UI with the new ambulance data, including the ID from the database
+      onAddAmbulance({
+        id: result.data._id,
+        driverName: formData.driverName,
+        vehicleNumber: formData.vehicleNumber,
+        status: formData.status,
+        location: formData.location,
+        lastService: formData.lastService,
       })
 
       // Reset form and close modal

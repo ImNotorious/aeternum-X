@@ -21,7 +21,6 @@ import {
   FileText,
   CheckCircle,
   XCircle,
-  Clock,
   AlertTriangle,
   Loader2,
 } from "lucide-react"
@@ -806,129 +805,6 @@ export default function AdminDashboardPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="emergency" className="space-y-6">
-            <div className="grid gap-6">
-              <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-sm">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Active Emergency Calls</CardTitle>
-                    <CardDescription>Real-time tracking of emergency situations</CardDescription>
-                  </div>
-                  <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsAddEmergencyModalOpen(true)}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    New Emergency
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {isLoadingEmergencies ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                    </div>
-                  ) : emergencyCalls.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      No emergency calls found. Add your first emergency call.
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ID</TableHead>
-                          <TableHead>Patient</TableHead>
-                          <TableHead>Emergency Type</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Ambulance</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {emergencyCalls.map((call) => (
-                          <TableRow key={call.id}>
-                            <TableCell className="font-medium">{call.id}</TableCell>
-                            <TableCell>{call.patientName}</TableCell>
-                            <TableCell>{call.emergencyType}</TableCell>
-                            <TableCell className="truncate max-w-[150px]">{call.location}</TableCell>
-                            <TableCell>{call.ambulanceId}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  call.status === "dispatched"
-                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800"
-                                    : call.status === "completed"
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"
-                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800"
-                                }
-                              >
-                                {call.status === "dispatched"
-                                  ? "Dispatched"
-                                  : call.status === "in_progress"
-                                    ? "In Progress"
-                                    : "Completed"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs">{new Date(call.timestamp).toLocaleTimeString()}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                                  onClick={() => {
-                                    toast({
-                                      title: "View Emergency Call",
-                                      description: `Viewing details for emergency call ${call.id}`,
-                                    })
-                                  }}
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  <span className="sr-only">View</span>
-                                </Button>
-                                {call.status !== "completed" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 hover:bg-green-100 hover:text-green-800"
-                                    onClick={() => {
-                                      const updatedCalls = emergencyCalls.map((c) =>
-                                        c.id === call.id ? { ...c, status: "completed" } : c,
-                                      )
-                                      setEmergencyCalls(updatedCalls)
-
-                                      // Update ambulance status
-                                      const updatedAmbulances = ambulances.map((a) =>
-                                        a.id === call.ambulanceId ? { ...a, status: "available" } : a,
-                                      )
-                                      setAmbulances(updatedAmbulances)
-
-                                      toast({
-                                        title: "Emergency Call Completed",
-                                        description: `Emergency call ${call.id} has been marked as completed.`,
-                                      })
-                                    }}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                    <span className="sr-only">Complete</span>
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
       )}
