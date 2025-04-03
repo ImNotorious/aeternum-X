@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
     }
   }, [])
 
-  // Fetch ambulances from the database on component mount
+  // Update the fetchAmbulances function to properly use the custom ID
   useEffect(() => {
     const fetchAmbulances = async () => {
       setIsLoadingAmbulances(true)
@@ -113,9 +113,9 @@ export default function AdminDashboardPage() {
         if (response.ok) {
           const data = await response.json()
           if (data && Array.isArray(data) && data.length > 0) {
-            // Format the data to match our interface
+            // Format the data to match our interface, always using the custom ID
             const formattedData = data.map((item: any) => ({
-              id: item._id || item.id,
+              id: item.id || `AMB-${Math.floor(1000 + Math.random() * 9000)}`, // Always use the custom ID
               driverName: item.driverName,
               vehicleNumber: item.vehicleNumber,
               status: item.status,

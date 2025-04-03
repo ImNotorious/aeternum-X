@@ -54,15 +54,18 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     setFormData((prev) => ({ ...prev, status: value }))
   }
 
+  // Update the handleSubmit function to ensure we're using the custom ID
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      // Generate a custom ambulance ID if not provided
+      // Generate a custom ambulance ID
+      const ambulanceId = `AMB-${Math.floor(1000 + Math.random() * 9000)}`
+
       const ambulanceData = {
         ...formData,
-        id: `AMB-${Math.floor(1000 + Math.random() * 9000)}`, // Generate ID like AMB-1234
+        id: ambulanceId, // Always use a custom ID
       }
 
       // Get the current Firebase auth token if available
@@ -92,12 +95,12 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
 
       toast({
         title: "Ambulance Added",
-        description: `New ambulance ${result.data.id} has been added successfully.`,
+        description: `New ambulance ${ambulanceId} has been added successfully.`,
       })
 
       // Update the UI with the new ambulance data, using the custom ID
       onAddAmbulance({
-        id: result.data.id, // Use the custom ID from the response
+        id: ambulanceId, // Use the custom ID we generated
         driverName: formData.driverName,
         vehicleNumber: formData.vehicleNumber,
         status: formData.status,

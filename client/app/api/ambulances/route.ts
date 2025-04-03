@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { ObjectId } from "mongodb"
 
+// Update the GET function to ensure we always return the custom ID
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions)
@@ -22,12 +23,31 @@ export async function GET(request: Request) {
     const db = client.db("aeternum")
 
     if (id) {
-      const ambulance = await db.collection("ambulances").findOne({
-        _id: new ObjectId(id),
-      })
+      let ambulance
+
+      // Try to find by custom ID first
+      ambulance = await db.collection("ambulances").findOne({ id: id })
+
+      // If not found, try by MongoDB ObjectId
+      if (!ambulance) {
+        try {
+          ambulance = await db.collection("ambulances").findOne({
+            _id: new ObjectId(id),
+          })
+        } catch (error) {
+          // Invalid ObjectId format, just continue
+        }
+      }
 
       if (!ambulance) {
         return NextResponse.json({ error: "Ambulance not found" }, { status: 404 })
+      }
+
+      // Ensure ambulance has a custom ID
+      if (!ambulance.id) {
+        ambulance.id = `AMB-${Math.floor(1000 + Math.random() * 9000)}`
+        // Update the document with the new ID
+        await db.collection("ambulances").updateOne({ _id: ambulance._id }, { $set: { id: ambulance.id } })
       }
 
       return NextResponse.json(ambulance)
@@ -39,6 +59,15 @@ export async function GET(request: Request) {
     }
 
     const ambulances = await db.collection("ambulances").find(query).toArray()
+
+    // Ensure all ambulances have a custom ID
+    for (const ambulance of ambulances) {
+      if (!ambulance.id) {
+        ambulance.id = `AMB-${Math.floor(1000 + Math.random() * 9000)}`
+        // Update the document with the new ID
+        await db.collection("ambulances").updateOne({ _id: ambulance._id }, { $set: { id: ambulance.id } })
+      }
+    }
 
     return NextResponse.json(ambulances)
   } catch (error) {
