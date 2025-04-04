@@ -21,38 +21,117 @@ Late diagnosis of critical conditions like pneumonia, fibrosis, arrhythmia, and 
 # Dependencies
 
 ## Programming Languages & Frameworks
-- Python 3.9+
-- JavaScript (Node.js 18+)
-- Express.js 4+
-- React.js 18+
+- Python 3.9
+- JavaScript (Node.js 22.x)
+- Express.js 4.17
+- React.js 18.0
 
 ## Machine Learning Libraries
-- TensorFlow 2.12+
-- Scikit-Learn 1.2+
-- NumPy 1.23+
-- Pandas 1.5+
+- TensorFlow 2.16.2
+- Scikit-Learn 1.3.2
+- NumPy 1.26.2
+- Pandas 2.1.4
+- Uvicorn 0.23.2
 
 ## Backend & API Development
-- Flask 2.2+
-- FastAPI 0.95+
+- Flask 3.0.2
+- FastAPI 0.103.1
 - MongoDB (Database) 
-- Mongoose 6+
 
 ## Cloud & Deployment Tools
-- Microsoft Azure App Service
+- Render
 - Vercel (for frontend hosting)
 
 ## Authentication & Security
 - Firebase Authentication
-- JWT (JSON Web Tokens) 2.6+
-- bcrypt 5.0+
-
-## Additional Utilities
-- OpenCV 4.7+ (for image processing)
-- Requests 2.28+
-- Matplotlib 3.6+ (for visualization)
+- bcrypt 5.1
 
 Ensure all dependencies are installed using pip or npm before running the project.
+
+# Setup Instructions:
+## 1. Clone the Repository
+Open a terminal or PowerShell window and run the following commands:
+```
+git clone https://github.com/ImNotorious/aeternum-X.git
+```
+
+## 2. Install and Run the Client
+Open a new terminal/PowerShell window (Terminal #1).
+
+Navigate to the client folder:
+
+```
+cd client
+```
+Install the dependencies (using --legacy-peer-deps to resolve any peer dependency conflicts):
+```
+npm install --legacy-peer-deps
+```
+(Optional) Install additional packages if needed:
+```
+npm install react@18 react-dom@18 date-fns@3.6.0 firebase @next-auth/mongodb-adapter bcryptjs mongodb --legacy-peer-deps
+```
+Start the client development server:
+```
+npm run dev
+```
+The client should now be running at http://localhost:3000 or the port specified in your configuration.
+
+## 3. Install and Run Model_1 (Server)
+Open another terminal/PowerShell window (Terminal #2).
+
+Navigate to the server/model_1 folder:
+
+```
+cd server/model_1
+```
+Install the Python dependencies:
+```
+pip install -r requirements.txt
+```
+Start the Python application:
+```
+python app.py
+```
+Model_1 should now be accessible at http://localhost:5000/predict.
+
+## 4. Install and Run Model_2 (Server)
+Open a third terminal/PowerShell window (Terminal #3).
+
+Navigate to the server/model_2 folder:
+```
+cd server/model_2
+```
+Install the Python dependencies:
+```
+pip install -r requirements.txt
+```
+Start the Uvicorn server:
+```
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+Model_2 should now be accessible at http://localhost:8000/predict.
+
+## 5. Usage
+Start all services:
+
+Client: Run npm run dev in Terminal #1.
+
+Model_1: Run ```python app.py``` in Terminal #2.
+
+Model_2: Run ```uvicorn main:app --host 0.0.0.0 --port 8000``` in Terminal #3.
+
+Open your web browser and navigate to http://localhost:3000 (or the configured port for your client).
+
+Interact with the UI, which will communicate with both server models as per your application logic.
+
+## 6. Troubleshooting
+Dependency Issues (Client): Use the ```--legacy-peer-deps flag``` if you encounter peer dependency conflicts.
+
+Python Dependency Issues: Ensure you are using a compatible Python version and have the correct privileges or virtual environment.
+
+Port Conflicts: Modify the port settings in package.json (client) or in the Python configuration files if necessary.
+
 
 # Team Members
 
