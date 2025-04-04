@@ -217,4 +217,3 @@ export function AddAmbulanceModal({ isOpen, onClose, onAddAmbulance }: AddAmbula
     </Dialog>
   )
 }
-
